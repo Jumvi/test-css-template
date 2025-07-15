@@ -1,3 +1,175 @@
+/* ========================================
+   EXERCICE CSS - Dr. Norman Borlaug
+   Mélange d'erreurs et bonnes pratiques
+   ======================================== */
+
+/* ✅ BONNES PRATIQUES : Reset et base */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f4f4f4;
+}
+
+/* ✅ BONNE PRATIQUE : Classes pour les composants */
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.main-title {
+    font-size: 2.5em;
+    margin: 0;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.subtitle {
+    font-size: 1.2em;
+    margin: 10px 0 0 0;
+    font-style: italic;
+    opacity: 0.9;
+}
+
+/* ❌ ERREUR : Point-virgule manquant */
+.bio-figure {
+    text-align: center
+    margin: 30px auto;
+    max-width: 800px;
+}
+
+/* ✅ BONNE PRATIQUE : Image responsive */
+.bio-image {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    border: 3px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.image-caption {
+    font-style: italic;
+    color: #666;
+    margin-top: 15px;
+    font-size: 0.9em;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ❌ ERREUR : Sélecteur ID utilisé pour styling (mauvaise pratique) */
+#timeline-list {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* ✅ BONNE PRATIQUE : Classes pour styling */
+.content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.timeline-title {
+    color: #2c3e50;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+    font-size: 1.8em;
+}
+
+/* ❌ ERREUR : Unité mal écrite (p au lieu de px) */
+.timeline {
+    list-style: none;
+    padding: 0;
+    margin: 20p 0;
+}
+
+.timeline li {
+    padding: 15px;
+    margin-bottom: 10px;
+    background-color: #ecf0f1;
+    border-left: 4px solid #3498db;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.timeline li:hover {
+    background-color: #d5dbdb;
+    transform: translateX(5px);
+}
+
+/* ❌ ERREUR : Propriété mal orthographiée */
+.timeline li strong {
+    colr: #2980b9;
+    font-weight: bold;
+}
+
+/* ✅ BONNE PRATIQUE : Citation bien stylée */
+.quote {
+    background-color: #fff;
+    padding: 25px;
+    margin: 30px auto;
+    border-left: 5px solid #27ae60;
+    font-size: 1.1em;
+    font-style: italic;
+    max-width: 700px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.quote-author {
+    text-align: right;
+    margin-top: 15px;
+    font-weight: bold;
+    color: #27ae60;
+}
+
+/* ❌ ERREUR : Accolade fermante manquante */
+footer {
+    margin-top: 40px;
+    padding: 30px 20px;
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+
+footer p {
+    margin: 0;
+    font-size: 1em;
+}
+
+/* ✅ BONNE PRATIQUE : Liens stylés */
+footer a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #5dade2;
+    text-decoration: underline;
+}
+
+/* ❌ ERREUR : Couleur hexadécimale invalide */
+.test-color {
+    color: #gggggg;
+    background-color: #123xyz;
+}
+
+/* ❌ ERREUR : Valeur sans unité */
+.test-size {
+    width: 200;
+    height: 150;
+    margin: 10;
+}
 
 
 
