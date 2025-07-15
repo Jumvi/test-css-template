@@ -1,0 +1,528 @@
+name: 🎯 Feedback Pédagogique CSS - Barème Officiel
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**.css'
+      - '**.html'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - '**.css'
+      - '**.html'
+
+jobs:
+  evaluate-css:
+    runs-on: ubuntu-latest
+    name: 🎓 Évaluation selon Barème Pédagogique
+    permissions:
+      contents: write
+    
+    steps:
+    - name: 📁 Récupération du code
+      uses: actions/checkout@v4
+    
+    - name: 🎯 Évaluation CSS selon Barème Pédagogique Réaliste
+      id: evaluation
+      run: |
+        echo "# 🎯 **FEEDBACK DÉTAILLÉ - INTRODUCTION À CSS**" > feedback.md
+        echo "" >> feedback.md
+        echo "**Exercice :** $(basename $(pwd))" >> feedback.md
+        echo "**Date d'analyse :** $(date '+%d/%m/%Y à %H:%M')" >> feedback.md
+        echo "**Analysé par :** Coach Web Design - Validation Pédagogique" >> feedback.md
+        echo "" >> feedback.md
+        echo "---" >> feedback.md
+        echo "" >> feedback.md
+        
+        # Initialisation des scores
+        SCORE_MAQUETTE=0
+        SCORE_SELECTORS=0
+        SCORE_TYPO=0
+        SCORE_PRACTICES=0
+        SCORE_VALIDATION=0
+        ERROR_COUNT=0
+        
+        # Recherche des fichiers
+        CSS_FILES=$(find . -name "*.css" -not -path "./node_modules/*" -not -path "./.git/*")
+        HTML_FILES=$(find . -name "*.html" -not -path "./node_modules/*" -not -path "./.git/*")
+        
+        echo "## 🚨 **ERREURS CRITIQUES DÉTECTÉES**" >> feedback.md
+        echo "" >> feedback.md
+        
+        if [ -z "$CSS_FILES" ]; then
+          echo "❌ **ERREUR CRITIQUE : Aucun fichier CSS trouvé !**" >> feedback.md
+          ERROR_COUNT=$((ERROR_COUNT + 10))
+        else
+          echo "📁 **Fichiers analysés :**" >> feedback.md
+          for file in $CSS_FILES; do
+            echo "- 🎨 \`$file\`" >> feedback.md
+          done
+          for file in $HTML_FILES; do
+            echo "- 📄 \`$file\`" >> feedback.md
+          done
+          echo "" >> feedback.md
+          
+          # ==========================================
+          # DÉTECTION DES ERREURS DE SYNTAXE CRITIQUES
+          # ==========================================
+          
+          for file in $CSS_FILES; do
+            echo "### 📄 **Analyse détaillée de \`$file\`**" >> feedback.md
+            echo "" >> feedback.md
+            
+            # 1. Point-virgules manquants
+            MISSING_SEMICOLONS=0
+            grep -n ":" "$file" | while IFS=: read -r line_num line_content; do
+              if echo "$line_content" | grep -qE "(/\*|\*/|@media|\{)" || echo "$line_content" | grep -qE "^\s*$"; then
+                continue
+              fi
+              if echo "$line_content" | grep -qE ":\s*[^;{}]*$" && ! echo "$line_content" | grep -qE "{\s*$"; then
+                echo "❌ **Ligne $line_num:** Point-virgule manquant" >> feedback.md
+                echo "\`\`\`css" >> feedback.md
+                echo "$line_content" >> feedback.md
+                echo "\`\`\`" >> feedback.md
+                echo "**💡 Solution:** Ajoutez \`;\` à la fin" >> feedback.md
+                echo "" >> feedback.md
+                MISSING_SEMICOLONS=$((MISSING_SEMICOLONS + 1))
+                ERROR_COUNT=$((ERROR_COUNT + 1))
+              fi
+            done
+            
+            # 2. Accolades non fermées
+            OPEN_BRACES=$(grep -o "{" "$file" | wc -l)
+            CLOSE_BRACES=$(grep -o "}" "$file" | wc -l)
+            if [ $OPEN_BRACES -ne $CLOSE_BRACES ]; then
+              echo "❌ **ERREUR CRITIQUE:** Accolades déséquilibrées" >> feedback.md
+              echo "- Ouvrantes: $OPEN_BRACES, Fermantes: $CLOSE_BRACES" >> feedback.md
+              echo "**💡 Solution:** Chaque \`{\` doit avoir son \`}\`" >> feedback.md
+              echo "" >> feedback.md
+              ERROR_COUNT=$((ERROR_COUNT + 3))
+            fi
+            
+            # 3. Propriétés mal orthographiées (erreurs typiques débutants)
+            BAD_PROPS=$(grep -cE "(colr|font-siz|margn|widht|heigth|bordr|backgrond):" "$file" 2>/dev/null || echo 0)
+            if [ $BAD_PROPS -gt 0 ]; then
+              echo "❌ **$BAD_PROPS propriété(s) mal orthographiée(s) détectée(s)**" >> feedback.md
+              grep -n -E "(colr|font-siz|margn|widht|heigth|bordr|backgrond):" "$file" | while IFS=: read -r line_num property_line; do
+                echo "**Ligne $line_num:** \`$property_line\`" >> feedback.md
+                if echo "$property_line" | grep -q "colr:"; then
+                  echo "💡 **Correction:** \`colr\` → \`color\`" >> feedback.md
+                fi
+                if echo "$property_line" | grep -q "font-siz:"; then
+                  echo "💡 **Correction:** \`font-siz\` → \`font-size\`" >> feedback.md
+                fi
+                if echo "$property_line" | grep -q "margn:"; then
+                  echo "💡 **Correction:** \`margn\` → \`margin\`" >> feedback.md
+                fi
+              done
+              echo "" >> feedback.md
+              ERROR_COUNT=$((ERROR_COUNT + BAD_PROPS))
+            fi
+            
+            # 4. Couleurs hexadécimales invalides
+            INVALID_COLORS=$(grep -cE "#[0-9a-fA-F]*[g-zG-Z]" "$file" 2>/dev/null || echo 0)
+            if [ $INVALID_COLORS -gt 0 ]; then
+              echo "❌ **$INVALID_COLORS couleur(s) hexadécimale(s) invalide(s)**" >> feedback.md
+              grep -n -E "#[0-9a-fA-F]*[g-zG-Z]" "$file" | while IFS=: read -r line_num color_line; do
+                echo "**Ligne $line_num:** \`$color_line\`" >> feedback.md
+              done
+              echo "💡 **Solution:** Utilisez seulement 0-9 et A-F (ex: #FF5733)" >> feedback.md
+              echo "" >> feedback.md
+              ERROR_COUNT=$((ERROR_COUNT + INVALID_COLORS))
+            fi
+            
+            # 5. Valeurs sans unités
+            MISSING_UNITS=$(grep -cE "(width|height|margin|padding|font-size):\s*[1-9][0-9]*\s*[;}]" "$file" 2>/dev/null || echo 0)
+            if [ $MISSING_UNITS -gt 0 ]; then
+              echo "❌ **$MISSING_UNITS valeur(s) sans unité détectée(s)**" >> feedback.md
+              echo "💡 **Solution:** Ajoutez px, em, %, rem, etc." >> feedback.md
+              echo "" >> feedback.md
+              ERROR_COUNT=$((ERROR_COUNT + MISSING_UNITS))
+            fi
+            
+            # 6. Unités mal écrites (p au lieu de px, e au lieu de em, etc.)
+            BAD_UNITS=$(grep -cE "(width|height|margin|padding|font-size):\s*[0-9]+\s*(p|e|re|%m|pix)\s*[;}]" "$file" 2>/dev/null || echo 0)
+            if [ $BAD_UNITS -gt 0 ]; then
+              echo "❌ **$BAD_UNITS unité(s) mal écrite(s) détectée(s)**" >> feedback.md
+              grep -n -E "(width|height|margin|padding|font-size):\s*[0-9]+\s*(p|e|re|%m|pix)\s*[;}]" "$file" | while IFS=: read -r line_num unit_line; do
+                echo "**Ligne $line_num:** \`$unit_line\`" >> feedback.md
+                if echo "$unit_line" | grep -qE "[0-9]+\s*p\s*[;}]"; then
+                  echo "💡 **Correction:** \`p\` → \`px\`" >> feedback.md
+                fi
+                if echo "$unit_line" | grep -qE "[0-9]+\s*e\s*[;}]"; then
+                  echo "💡 **Correction:** \`e\` → \`em\`" >> feedback.md
+                fi
+                if echo "$unit_line" | grep -qE "[0-9]+\s*re\s*[;}]"; then
+                  echo "💡 **Correction:** \`re\` → \`rem\`" >> feedback.md
+                fi
+                if echo "$unit_line" | grep -qE "[0-9]+\s*pix\s*[;}]"; then
+                  echo "💡 **Correction:** \`pix\` → \`px\`" >> feedback.md
+                fi
+              done
+              echo "" >> feedback.md
+              ERROR_COUNT=$((ERROR_COUNT + BAD_UNITS))
+            fi
+          done
+          
+          # ==========================================
+          # DÉTECTION DES STYLES INLINE (ERREUR MAJEURE)
+          # ==========================================
+          
+          INLINE_STYLES=0
+          if [ -n "$HTML_FILES" ]; then
+            echo "### � **Vérification des styles inline dans le HTML**" >> feedback.md
+            echo "" >> feedback.md
+            
+            for file in $HTML_FILES; do
+              INLINE_COUNT=$(grep -c 'style\s*=' "$file" 2>/dev/null || echo 0)
+              if [ $INLINE_COUNT -gt 0 ]; then
+                INLINE_STYLES=$((INLINE_STYLES + INLINE_COUNT))
+              fi
+            done
+            
+            if [ $INLINE_STYLES -gt 0 ]; then
+              echo "🚨 **PROBLÈME MAJEUR : $INLINE_STYLES style(s) inline détecté(s)**" >> feedback.md
+              echo "" >> feedback.md
+              
+              for file in $HTML_FILES; do
+                INLINE_COUNT=$(grep -c 'style\s*=' "$file" 2>/dev/null || echo 0)
+                if [ $INLINE_COUNT -gt 0 ]; then
+                  echo "❌ **$INLINE_COUNT style(s) inline dans \`$file\`**" >> feedback.md
+                  grep -n 'style\s*=' "$file" | head -5 | while IFS=: read -r line_num style_line; do
+                    echo "**Ligne $line_num:** \`$(echo "$style_line" | cut -c1-60)...\`" >> feedback.md
+                  done
+                  echo "" >> feedback.md
+                fi
+              done
+              
+              echo "**💡 SOLUTION URGENTE:** Transférez TOUS les styles vers \`style.css\`" >> feedback.md
+              echo "" >> feedback.md
+              echo "\`\`\`css" >> feedback.md
+              echo "/* Dans style.css */" >> feedback.md
+              echo ".header { text-align: center; margin: 20px; }" >> feedback.md
+              echo ".main-title { color: red; font-size: 28px; }" >> feedback.md
+              echo "\`\`\`" >> feedback.md
+              echo "" >> feedback.md
+              echo "\`\`\`html" >> feedback.md
+              echo "<!-- Dans HTML -->" >> feedback.md
+              echo '<header class="header">' >> feedback.md
+              echo '  <h1 class="main-title">Titre</h1>' >> feedback.md
+              echo "\`\`\`" >> feedback.md
+              echo "" >> feedback.md
+            else
+              echo "💡 **EXCELLENT ! Aucun style inline détecté**" >> feedback.md
+              echo "✅ **Parfait !** Vous utilisez correctement le CSS externe." >> feedback.md
+              echo "✅ **Bonne pratique respectée :** Séparation HTML/CSS maîtrisée." >> feedback.md
+              echo "" >> feedback.md
+            fi
+          fi
+          
+          # ==========================================
+          # DÉTECTION DES SÉLECTEURS ID (MAUVAISE PRATIQUE)
+          # ==========================================
+          
+          ID_SELECTORS=0
+          echo "### 🆔 **Vérification des sélecteurs ID dans le CSS**" >> feedback.md
+          echo "" >> feedback.md
+          
+          for file in $CSS_FILES; do
+            # Détection des sélecteurs #id (hors commentaires)
+            ID_COUNT=$(grep -cE "^\s*#[a-zA-Z][a-zA-Z0-9_-]*\s*{" "$file" 2>/dev/null || echo 0)
+            if [ $ID_COUNT -gt 0 ]; then
+              ID_SELECTORS=$((ID_SELECTORS + ID_COUNT))
+              echo "⚠️ **$ID_COUNT sélecteur(s) ID détecté(s) dans \`$file\`**" >> feedback.md            grep -n -E "^\s*#[a-zA-Z][a-zA-Z0-9_-]*\s*{" "$file" | while IFS=: read -r line_num id_line; do
+              ID_NAME=$(echo "$id_line" | sed -E 's/^\s*#([a-zA-Z][a-zA-Z0-9_-]*)\s*{.*/\1/')
+              echo "**Ligne $line_num:** \`#$ID_NAME { ... }\`" >> feedback.md
+            done
+              echo "" >> feedback.md
+            fi
+          done
+          
+          if [ $ID_SELECTORS -gt 0 ]; then
+            echo "**🎯 BONNE PRATIQUE MANQUÉE :**" >> feedback.md
+            echo "- Les **ID** sont pour l'identification unique (JavaScript, ancres)" >> feedback.md
+            echo "- Les **classes** sont pour le styling CSS" >> feedback.md
+            echo "" >> feedback.md
+            echo "**💡 SOLUTION :**" >> feedback.md
+            echo "1. Remplacez \`#mon-id\` par \`.ma-classe\` dans le CSS" >> feedback.md
+            echo "2. Remplacez \`id=\"mon-id\"\` par \`class=\"ma-classe\"\` dans le HTML" >> feedback.md
+            echo "" >> feedback.md
+            echo "**🔄 EXEMPLE DE CORRECTION :**" >> feedback.md
+            echo "\`\`\`css" >> feedback.md
+            echo "/* ❌ Mauvais - utilisation d'ID pour styling */" >> feedback.md
+            echo "#header { background: blue; }" >> feedback.md
+            echo "" >> feedback.md
+            echo "/* ✅ Correct - utilisation de classe pour styling */" >> feedback.md
+            echo ".header { background: blue; }" >> feedback.md
+            echo "\`\`\`" >> feedback.md
+            echo "" >> feedback.md
+            echo "\`\`\`html" >> feedback.md
+            echo "<!-- ❌ Mauvais -->" >> feedback.md
+            echo '<div id="header">' >> feedback.md
+            echo "" >> feedback.md
+            echo "<!-- ✅ Correct -->" >> feedback.md
+            echo '<div class="header">' >> feedback.md
+            echo "\`\`\`" >> feedback.md
+            echo "" >> feedback.md
+            ERROR_COUNT=$((ERROR_COUNT + ID_SELECTORS))
+          else
+            echo "✅ **Aucun sélecteur ID détecté - Excellente pratique !**" >> feedback.md
+            echo "💡 **Bravo !** Vous utilisez correctement les classes pour le styling." >> feedback.md
+            echo "" >> feedback.md
+          fi
+        fi
+        
+        # ==========================================
+        # ÉVALUATION SELON BARÈME OFFICIEL (15 points)
+        # ==========================================
+        
+        echo "## 📊 **ÉVALUATION SELON LE BARÈME OFFICIEL (15 points)**" >> feedback.md
+        echo "" >> feedback.md
+        
+        # 1. RESPECT DE LA MAQUETTE (3 points)
+        echo "### 🎨 **1. Respect de la Maquette** (3 points)" >> feedback.md
+        if [ "$INLINE_STYLES" -gt 0 ]; then
+          SCORE_MAQUETTE=0
+          echo "❌ **Débutant : Insuffisant (0/3 points)**" >> feedback.md
+          echo "- Mise en page dépendante des styles inline" >> feedback.md
+          echo "- Aucune utilisation du CSS externe" >> feedback.md
+        elif [ "$ERROR_COUNT" -gt 5 ]; then
+          SCORE_MAQUETTE=1
+          echo "📈 **Basique : À Améliorer (1/3 points)**" >> feedback.md
+          echo "- CSS externe utilisé mais avec des erreurs" >> feedback.md
+        elif [ "$ERROR_COUNT" -gt 2 ]; then
+          SCORE_MAQUETTE=2
+          echo "👍 **Compétent : Bien (2/3 points)**" >> feedback.md
+          echo "- Bonne approche avec quelques corrections nécessaires" >> feedback.md
+        else
+          SCORE_MAQUETTE=3
+          echo "🌟 **Avancé : Excellent (3/3 points)**" >> feedback.md
+          echo "- Mise en page professionnelle et bien structurée" >> feedback.md
+        fi
+        echo "" >> feedback.md
+        
+        # 2. UTILISATION DES SÉLECTEURS CSS (3 points)
+        echo "### 🏷️ **2. Utilisation des Sélecteurs CSS** (3 points)" >> feedback.md
+        if [ "$INLINE_STYLES" -gt 5 ]; then
+          SCORE_SELECTORS=0
+          echo "❌ **Débutant : Insuffisant (0/3 points)**" >> feedback.md
+          echo "- Aucune utilisation effective des sélecteurs CSS" >> feedback.md
+        elif [ "$INLINE_STYLES" -gt 0 ] || [ "$ID_SELECTORS" -gt 3 ]; then
+          SCORE_SELECTORS=1
+          echo "📈 **Basique : À Améliorer (1/3 points)**" >> feedback.md
+          if [ "$INLINE_STYLES" -gt 0 ]; then
+            echo "- Classes définies mais styles inline omniprésents" >> feedback.md
+          fi
+          if [ "$ID_SELECTORS" -gt 3 ]; then
+            echo "- Utilisation excessive des sélecteurs ID pour le styling" >> feedback.md
+          fi
+        else
+          CLASS_COUNT=$(grep -cE "^\s*\.[a-zA-Z]" $CSS_FILES 2>/dev/null | head -1 || echo 0)
+          if [ "$CLASS_COUNT" -ge 5 ] && [ "$ID_SELECTORS" -eq 0 ]; then
+            SCORE_SELECTORS=3
+            echo "🌟 **Avancé : Excellent (3/3 points)**" >> feedback.md
+            echo "- Utilisation maîtrisée des classes CSS" >> feedback.md
+            echo "- Aucun sélecteur ID utilisé pour le styling" >> feedback.md
+          elif [ "$CLASS_COUNT" -ge 3 ] && [ "$ID_SELECTORS" -le 1 ]; then
+            SCORE_SELECTORS=2
+            echo "👍 **Compétent : Bien (2/3 points)**" >> feedback.md
+            echo "- Bonne utilisation des classes CSS" >> feedback.md
+            if [ "$ID_SELECTORS" -eq 1 ]; then
+              echo "- Une utilisation mineure d'ID détectée" >> feedback.md
+            fi
+          else
+            SCORE_SELECTORS=1
+            echo "📈 **Basique : À Améliorer (1/3 points)**" >> feedback.md
+            echo "- Peu de classes définies ou trop d'ID utilisés" >> feedback.md
+          fi
+        fi
+        echo "" >> feedback.md
+        
+        # 3. TYPOGRAPHIE ET HIÉRARCHIE VISUELLE (3 points)
+        echo "### 📝 **3. Typographie et Hiérarchie Visuelle** (3 points)" >> feedback.md
+        if [ "$INLINE_STYLES" -gt 0 ]; then
+          SCORE_TYPO=0
+          echo "❌ **Débutant : Insuffisant (0/3 points)**" >> feedback.md
+          echo "- Hiérarchie définie uniquement via styles inline" >> feedback.md
+        else
+          FONT_PROPS=$(grep -cE "(font-family|font-size|font-weight)" $CSS_FILES 2>/dev/null | head -1 || echo 0)
+          if [ "$FONT_PROPS" -ge 4 ]; then
+            SCORE_TYPO=3
+            echo "🌟 **Avancé : Excellent (3/3 points)**" >> feedback.md
+          elif [ "$FONT_PROPS" -ge 2 ]; then
+            SCORE_TYPO=2
+            echo "👍 **Compétent : Bien (2/3 points)**" >> feedback.md
+          else
+            SCORE_TYPO=1
+            echo "📈 **Basique : À Améliorer (1/3 points)**" >> feedback.md
+          fi
+        fi
+        echo "" >> feedback.md
+        
+        # 4. RESPECT DES BONNES PRATIQUES CSS (3 points)
+        echo "### ✨ **4. Respect des Bonnes Pratiques CSS** (3 points)" >> feedback.md
+        if [ "$INLINE_STYLES" -gt 0 ]; then
+          SCORE_PRACTICES=0
+          echo "❌ **Débutant : Insuffisant (0/3 points)**" >> feedback.md
+          echo "- **$INLINE_STYLES styles inline** = violation majeure des bonnes pratiques" >> feedback.md
+          echo "- Séparation HTML/CSS non respectée" >> feedback.md
+        elif [ "$ERROR_COUNT" -eq 0 ]; then
+          SCORE_PRACTICES=3
+          echo "🌟 **Avancé : Excellent (3/3 points)**" >> feedback.md
+          echo "- Code parfaitement structuré" >> feedback.md
+        elif [ "$ERROR_COUNT" -le 2 ]; then
+          SCORE_PRACTICES=2
+          echo "👍 **Compétent : Bien (2/3 points)**" >> feedback.md
+          echo "- Bonnes pratiques respectées avec quelques améliorations" >> feedback.md
+        else
+          SCORE_PRACTICES=1
+          echo "📈 **Basique : À Améliorer (1/3 points)**" >> feedback.md
+          echo "- Code partiellement structuré" >> feedback.md
+        fi
+        echo "" >> feedback.md
+        
+        # 5. VALIDATION ET COMPATIBILITÉ (3 points)
+        echo "### ✅ **5. Validation et Compatibilité** (3 points)" >> feedback.md
+        if [ "$ERROR_COUNT" -eq 0 ]; then
+          SCORE_VALIDATION=3
+          echo "🌟 **Avancé : Excellent (3/3 points)**" >> feedback.md
+          echo "- Code sans erreurs de syntaxe" >> feedback.md
+        elif [ "$ERROR_COUNT" -le 2 ]; then
+          SCORE_VALIDATION=2
+          echo "👍 **Compétent : Bien (2/3 points)**" >> feedback.md
+          echo "- Code globalement valide avec quelques avertissements" >> feedback.md
+        elif [ "$ERROR_COUNT" -le 5 ]; then
+          SCORE_VALIDATION=1
+          echo "📈 **Basique : À Améliorer (1/3 points)**" >> feedback.md
+          echo "- Plusieurs erreurs nécessitent correction" >> feedback.md
+        else
+          SCORE_VALIDATION=0
+          echo "❌ **Débutant : Insuffisant (0/3 points)**" >> feedback.md
+          echo "- Code invalide avec erreurs majeures" >> feedback.md
+        fi
+        echo "" >> feedback.md
+        
+        # ==========================================
+        # CALCUL DU SCORE TOTAL
+        # ==========================================
+        
+        TOTAL_SCORE=$((SCORE_MAQUETTE + SCORE_SELECTORS + SCORE_TYPO + SCORE_PRACTICES + SCORE_VALIDATION))
+        PERCENTAGE=$((TOTAL_SCORE * 100 / 15))
+        
+        echo "## 🎯 **SCORE FINAL : $TOTAL_SCORE/15 ($PERCENTAGE%)**" >> feedback.md
+        echo "" >> feedback.md
+        echo "| Critère | Score | Maximum |" >> feedback.md
+        echo "|---------|-------|---------|" >> feedback.md
+        echo "| 🎨 Respect de la maquette | $SCORE_MAQUETTE | 3 |" >> feedback.md
+        echo "| 🏷️ Utilisation des sélecteurs CSS | $SCORE_SELECTORS | 3 |" >> feedback.md
+        echo "| 📝 Typographie et hiérarchie visuelle | $SCORE_TYPO | 3 |" >> feedback.md
+        echo "| ✨ Respect des bonnes pratiques CSS | $SCORE_PRACTICES | 3 |" >> feedback.md
+        echo "| ✅ Validation et compatibilité | $SCORE_VALIDATION | 3 |" >> feedback.md
+        echo "" >> feedback.md
+        
+        # Évaluation finale
+        if [ "$TOTAL_SCORE" -ge 13 ]; then
+          echo "### 🌟 **AVANCÉ : EXCELLENT !** ($TOTAL_SCORE/15)" >> feedback.md
+          echo "🎉 **Félicitations !** Travail de qualité professionnelle." >> feedback.md
+        elif [ "$TOTAL_SCORE" -ge 10 ]; then
+          echo "### 👍 **COMPÉTENT : BIEN !** ($TOTAL_SCORE/15)" >> feedback.md
+          echo "✨ **Très bon travail !** Quelques ajustements et ce sera parfait." >> feedback.md
+        elif [ "$TOTAL_SCORE" -ge 7 ]; then
+          echo "### 📈 **BASIQUE : À AMÉLIORER** ($TOTAL_SCORE/15)" >> feedback.md
+          echo "🎯 **Bon début !** Concentrez-vous sur les points faibles identifiés." >> feedback.md
+        else
+          echo "### 💪 **DÉBUTANT : CONTINUE TES EFFORTS !** ($TOTAL_SCORE/15)" >> feedback.md
+          echo "🌱 **Ne vous découragez pas !** Votre principale mission : **éliminer tous les styles inline**." >> feedback.md
+        fi
+        echo "" >> feedback.md
+        
+        # ==========================================
+        # PLAN D'ACTION PRIORITAIRE
+        # ==========================================
+        
+        echo "---" >> feedback.md
+        echo "" >> feedback.md
+        echo "## 🚀 **PLAN D'ACTION PRIORITAIRE**" >> feedback.md
+        echo "" >> feedback.md
+        
+        if [ "$INLINE_STYLES" -gt 0 ]; then
+          echo "### **Étape 1 - URGENT (à faire maintenant) :**" >> feedback.md
+          echo "1. ❌ **Supprimez TOUS les attributs \`style=\"\"\` du HTML**" >> feedback.md
+          echo "2. ✅ **Transférez ces styles vers \`style.css\`**" >> feedback.md
+          echo "3. ✅ **Créez des classes descriptives (.header, .main-title, etc.)**" >> feedback.md
+          echo "4. ✅ **Ajoutez les classes correspondantes dans le HTML**" >> feedback.md
+          echo "" >> feedback.md
+        fi
+        
+        if [ "$ERROR_COUNT" -gt 0 ]; then
+          echo "### **Étape 2 - Correction des erreurs :**" >> feedback.md
+          echo "1. 🔧 **Corrigez les $ERROR_COUNT erreur(s) de syntaxe détectées**" >> feedback.md
+          echo "2. ✏️ **Vérifiez l'orthographe des propriétés CSS**" >> feedback.md
+          echo "3. 📏 **Ajoutez les unités manquantes (px, em, %, etc.)**" >> feedback.md
+          echo "" >> feedback.md
+        fi
+        
+        echo "### **Étape 3 - Validation :**" >> feedback.md
+        echo "1. 👀 **Vérifiez que votre page s'affiche identiquement**" >> feedback.md
+        echo "2. 🔍 **Validez votre CSS avec le [validateur W3C](https://jigsaw.w3.org/css-validator/)**" >> feedback.md
+        echo "3. 📱 **Testez sur différentes tailles d'écran**" >> feedback.md
+        echo "" >> feedback.md
+        
+        echo "## 💡 **CONSEILS DE VOTRE COACH**" >> feedback.md
+        echo "" >> feedback.md
+        echo "### 🎯 **Règle d'or :**" >> feedback.md
+        echo "**JAMAIS de \`style=\"\"\` dans le HTML !** C'est la règle n°1 du CSS." >> feedback.md
+        echo "" >> feedback.md
+        echo "### ✅ **Checklist avant validation :**" >> feedback.md
+        
+        if [ "$INLINE_STYLES" -gt 0 ]; then
+          echo "- [ ] ❌ Aucun attribut \`style=\"\"\` dans le HTML" >> feedback.md
+        else
+          echo "- [x] ✅ Aucun attribut \`style=\"\"\` dans le HTML" >> feedback.md
+        fi
+        
+        if [ "$ERROR_COUNT" -eq 0 ]; then
+          echo "- [x] ✅ Aucune erreur de syntaxe CSS" >> feedback.md
+        else
+          echo "- [ ] ❌ Aucune erreur de syntaxe CSS" >> feedback.md
+        fi
+        
+        echo "- [ ] Tous les styles dans \`style.css\`" >> feedback.md
+        echo "- [ ] Classes CSS bien nommées et utilisées" >> feedback.md
+        echo "- [ ] Structure HTML valide" >> feedback.md
+        echo "" >> feedback.md
+        
+        echo "---" >> feedback.md
+        echo "" >> feedback.md
+        echo "🎓 **Feedback généré automatiquement le $(date '+%d/%m/%Y à %H:%M')**" >> feedback.md
+        echo "📧 **Questions ?** Contactez votre formateur pour des explications détaillées." >> feedback.md
+        
+        # Exporter les variables
+        echo "ERROR_COUNT=$ERROR_COUNT" >> $GITHUB_OUTPUT
+        echo "TOTAL_SCORE=$TOTAL_SCORE" >> $GITHUB_OUTPUT
+        echo "PERCENTAGE=$PERCENTAGE" >> $GITHUB_OUTPUT
+        echo "INLINE_STYLES=$INLINE_STYLES" >> $GITHUB_OUTPUT
+    
+    - name: 📝 Affichage du Feedback Réaliste
+      run: |
+        echo "🎯 === ÉVALUATION TERMINÉE ==="
+        echo "📊 Score: ${{ steps.evaluation.outputs.TOTAL_SCORE }}/15 (${{ steps.evaluation.outputs.PERCENTAGE }}%)"
+        echo "🚨 Erreurs détectées: ${{ steps.evaluation.outputs.ERROR_COUNT }}"
+        echo "⚠️  Styles inline: ${{ steps.evaluation.outputs.INLINE_STYLES }}"
+        echo ""
+        echo "📋 Aperçu du feedback:"
+        head -20 feedback.md
+
+    - name: 💾 Commit du Feedback Pédagogique
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "Coach CSS - GitHub Action"
+        git add feedback.md
+        if git diff --staged --quiet; then
+          echo "Aucune modification à commiter"
+        else
+          git commit -m "🎓 Feedback pédagogique: ${{ steps.evaluation.outputs.TOTAL_SCORE }}/15 points (${{ steps.evaluation.outputs.ERROR_COUNT }} erreurs, ${{ steps.evaluation.outputs.INLINE_STYLES }} styles inline)"
+          git push
+          echo "✅ Feedback pédagogique sauvegardé"
+        fi
